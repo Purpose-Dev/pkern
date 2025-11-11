@@ -6,7 +6,12 @@ pub fn build(b: *std.Build) void {
     const cwd = std.fs.cwd();
     _ = cwd.makeDir(out_dir) catch {};
 
-    const target = b.standardTargetOptions(.{});
+    const target = b.standardTargetOptions(.{
+        .default_target = .{
+            .cpu_arch = .x86,
+            .os_tag = .freestanding
+        }
+    });
     const optimize = b.standardOptimizeOption(.{});
 
     const drivers_mod = b.createModule(.{
@@ -15,44 +20,26 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const kernel_mod = b.createModule(.{
-        .root_source_file = b.path("src/kernel/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-
-    kernel_mod.addImport("drivers", drivers_mod);
-
-    const lib = b.addLibrary(.{
-        .linkage = .static,
-        .name = "pkern",
-        .root_module = drivers_mod,
-    });
-    b.installArtifact(lib);
-
     const kernel_exe = b.addExecutable(.{
-        .name = "kernel",
-        .root_module = kernel_mod,
+        .name = "kfs.bin",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("src/kernel/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
     });
-    b.installArtifact(kernel_exe);
 
-    const asm_cmd = b.addSystemCommand(&[_][]const u8{
-        "nasm",
-        "-f", "elf32",
-        "src/arch/i386/boot.asm",
-        "-o", out_dir ++ "/boot.o",
-    });
-    asm_cmd.step.dependOn(&kernel_exe.step);
+    kernel_exe.is_linking_libc = false;
+    kernel_exe.root_module.addImport("drivers", drivers_mod);
+    kernel_exe.setLinkerScript(b.path("linker.ld"));
+    kernel_exe.addAssemblyFile(b.path("src/arch/i386/boot.s"));
 
-    const link_cmd = b.addSystemCommand(&[_][]const u8{
-        "ld",
-        "-m", "elf_i386",
-        "-T", "linker.ld",
-        "-o", out_dir ++ "/kfs.bin",
-        out_dir ++ "/boot.o",
-        out_dir ++ "/kernel.o",
-    });
-    link_cmd.step.dependOn(&asm_cmd.step);
+    const install_kernel = b.addInstallFile(
+        kernel_exe.*.getEmittedBin(),
+        "iso/boot/kfs.bin"
+    );
+    const install_step = b.step("install_kern", "Install kernel to iso/ dir");
+    install_step.dependOn(&install_kernel.step);
 
     const iso_cmd = b.addSystemCommand(&[_][]const u8{
         "grub-mkrescue",
@@ -60,14 +47,17 @@ pub fn build(b: *std.Build) void {
         out_dir ++ "/kfs.iso",
         "iso",
     });
-    iso_cmd.step.dependOn(&link_cmd.step);
-
+    iso_cmd.step.dependOn(install_step);
     b.default_step.dependOn(&iso_cmd.step);
 
-    const run_cmd = b.addRunArtifact(kernel_exe);
-    run_cmd.step.dependOn(b.getInstallStep());
-    if (b.args) |args| run_cmd.addArgs(args);
+    const run_cmd = b.addSystemCommand(&[_][]const u8{
+        "qemu-system-i386",
+        "-m", "128M",
+        "-cdrom", "build/kfs.iso",
+        "-serial", "stdio",
+    });
+    run_cmd.step.dependOn(&iso_cmd.step);
 
-    const run_step = b.step("run", "Run the kernel");
+    const run_step = b.step("run", "Run the kernel in QEMU");
     run_step.dependOn(&run_cmd.step);
 }
