@@ -6,21 +6,15 @@
 
 .section .multiboot
 .align 4
-.long MAGIC
-.long FLAGS
-.long CHECKSUM
-
-.section .bss
-.align 16
-stack_bottom:
-	.skip 16384 # 16KB
-stack_top:
-	# The ‘stack_top’ symbol is at the end of this area,
-	# that's where ESP needs to start.
+.global multiboot_header
+multiboot_header:
+	.long MAGIC
+	.long FLAGS
+	.long CHECKSUM
 
 .section .text
 .global _start
-.type _start,@function
+.type _start, @function
 _start:
 	movl $stack_top, %esp  # We point the stack pointer to ‘stack_top’, which we define in .bss
 	call kmain          # Now we can call Zig code
@@ -31,3 +25,11 @@ _start:
 	jmp .halt   # Infinite loop
 
 .size _start, . - _start
+
+.section .bss
+.align 16
+stack_bottom:
+	.skip 16384 # 16KB
+stack_top:
+	# The ‘stack_top’ symbol is at the end of this area,
+	# that's where ESP needs to start.
