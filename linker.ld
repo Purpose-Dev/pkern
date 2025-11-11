@@ -1,4 +1,4 @@
-ENTRY(start)
+ENTRY(_start)
 
 OUTPUT_FORMAT(elf32-i386)
 OUTPUT_ARCH(i386)
@@ -7,7 +7,7 @@ SECTIONS
 {
 	. = 1M;
 
-	.text : {
+	.text : ALIGN(4K) {
 		*(.multiboot)
         *(.text*)
         *(.rodata*)
@@ -18,7 +18,7 @@ SECTIONS
     }
 
     .bss : {
-        *(.bss*)
         *(COMMON)
+        *(.bss*)
     }
 }
