@@ -2,6 +2,6 @@
 pub const vga = @import("vga.zig");
 
 pub fn initDrivers() void {
-	vga.init();
-	// keyboard.init();
+    vga.init();
+    // keyboard.init();
 }

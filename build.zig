@@ -6,12 +6,7 @@ pub fn build(b: *std.Build) void {
     const cwd = std.fs.cwd();
     _ = cwd.makeDir(out_dir) catch {};
 
-    const target = b.standardTargetOptions(.{
-        .default_target = .{
-            .cpu_arch = .x86,
-            .os_tag = .freestanding
-        }
-    });
+    const target = b.standardTargetOptions(.{ .default_target = .{ .cpu_arch = .x86, .os_tag = .freestanding } });
     const optimize = b.standardOptimizeOption(.{});
 
     const drivers_mod = b.createModule(.{
@@ -34,10 +29,7 @@ pub fn build(b: *std.Build) void {
     kernel_exe.setLinkerScript(b.path("linker.ld"));
     kernel_exe.addAssemblyFile(b.path("src/arch/i386/boot.s"));
 
-    const install_kernel = b.addInstallFile(
-        kernel_exe.*.getEmittedBin(),
-        "iso/boot/kfs.bin"
-    );
+    const install_kernel = b.addInstallFile(kernel_exe.*.getEmittedBin(), "iso/boot/kfs.bin");
     const install_step = b.step("install_kern", "Install kernel to iso/ dir");
     install_step.dependOn(&install_kernel.step);
 
@@ -52,9 +44,12 @@ pub fn build(b: *std.Build) void {
 
     const run_cmd = b.addSystemCommand(&[_][]const u8{
         "qemu-system-i386",
-        "-m", "128M",
-        "-cdrom", "build/kfs.iso",
-        "-serial", "stdio",
+        "-m",
+        "128M",
+        "-cdrom",
+        "build/kfs.iso",
+        "-serial",
+        "stdio",
     });
     run_cmd.step.dependOn(&iso_cmd.step);
 
