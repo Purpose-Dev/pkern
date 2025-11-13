@@ -5,20 +5,27 @@ OUTPUT_ARCH(i386)
 
 SECTIONS
 {
-	. = 1M;
+    . = 1M;
 
-	.text : ALIGN(4K) {
-		*(.multiboot)
-        *(.text*)
-        *(.rodata*)
-	}
-
-	.data : {
-        *(.data*)
+    .text : ALIGN(4K)
+    {
+        *(.multiboot)
+        *(.text)
     }
 
-    .bss : {
+    .rodata : ALIGN(4K)
+    {
+        *(.rodata)
+    }
+
+    .data : ALIGN(4K)
+    {
+        *(.data)
+    }
+
+    .bss : ALIGN(4K)
+    {
         *(COMMON)
-        *(.bss*)
+        *(.bss)
     }
 }
