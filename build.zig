@@ -35,6 +35,7 @@ pub fn build(b: *std.Build) void {
     kernel_exe.root_module.addImport("arch", arch_mod);
     kernel_exe.setLinkerScript(b.path("linker.ld"));
     kernel_exe.addAssemblyFile(b.path("src/arch/i386/boot.s"));
+    kernel_exe.addAssemblyFile(b.path("src/arch/i386/isr.s"));
 
     const install_kernel = b.addInstallFile(kernel_exe.*.getEmittedBin(), "iso/boot/kfs.bin");
     const install_step = b.step("install_kern", "Install kernel to iso/ dir");
