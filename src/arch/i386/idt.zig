@@ -1,9 +1,9 @@
 const IdtEntry = packed struct {
     base_low: u16,
-    base_high: u16,
     selector: u16,
     zero: u8,
     type_attr: u8,
+    base_high: u16,
 };
 
 const IdtPtr = packed struct { limit: u16, base: usize };

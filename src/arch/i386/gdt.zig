@@ -2,9 +2,9 @@ const GdtEntry = packed struct {
     limit_low: u16,
     base_low: u16,
     base_middle: u8,
-    base_high: u8,
     access: u8,
     granularity: u8,
+    base_high: u8,
 };
 
 const GdtPtr = packed struct {
