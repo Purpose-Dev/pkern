@@ -2,6 +2,7 @@ const builtin = @import("builtin");
 const arch = @import("arch");
 const drivers = @import("drivers");
 const fmt = @import("fmt.zig");
+const debug = @import("debug.zig");
 
 pub export fn kmain() callconv(.c) void {
     arch.gdt.init();
@@ -12,29 +13,24 @@ pub export fn kmain() callconv(.c) void {
 
     drivers.initDrivers();
 
-    fmt.printk(fmt.LogLevel.Info, "GDT, IDT, and PIC loaded successfully\n", .{});
-    fmt.printk(fmt.LogLevel.Info, "Welcome into P-Kern (Zig)!\n", .{});
+    asm volatile ("sti");
+
+    fmt.printk(fmt.LogLevel.Info, "P-Kern GDT @ 0x800 loaded.\n", .{});
 
     const an_int: i32 = -42;
     const an_uint: u32 = 1234;
     const a_ptr: usize = 0xDEADBEEF;
+    const test_val: u32 = 0xCAFEBABE;
+    const test_val2: u32 = 0xDEADBEEF;
 
-    fmt.printk(fmt.LogLevel.Debug, "This is a debug message.\n", .{});
-    fmt.printk(fmt.LogLevel.Info, "Let's display a string: '%s'\n", .{"P-Kern"});
-    fmt.printk(fmt.LogLevel.Info, "A signed integer: %d\n", .{an_int});
-    fmt.printk(fmt.LogLevel.Info, "An unsigned integer: %u\n", .{an_uint});
-    fmt.printk(fmt.LogLevel.Warn, "This is a warning !\n", .{});
-    fmt.printk(fmt.LogLevel.Error, "Address (pointer): %p\n", .{a_ptr});
-    fmt.printk(fmt.LogLevel.Info, "Character: %c\n", .{@as(u8, 'Z')});
+    _ = an_int;
+    _ = an_uint;
+    _ = a_ptr;
+    _ = test_val;
+    _ = test_val2;
 
-    drivers.vga.setColor(.Red, .Black);
-    drivers.vga.print("42!\n");
-
-    fmt.printk(fmt.LogLevel.Info, "Enable interrupts...\n", .{});
-
-    asm volatile ("sti");
-
-    fmt.printk(fmt.LogLevel.Info, "Type something!\n", .{});
+    fmt.printk(fmt.LogLevel.Info, "Testing Stack Dump...\n", .{});
+    debug.dumpStack(10);
 
     while (true) {
         asm volatile ("hlt");
