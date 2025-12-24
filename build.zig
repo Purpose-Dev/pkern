@@ -15,6 +15,12 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
+    const arch_mod = b.createModule(.{
+        .root_source_file = b.path("src/arch/i386/mod.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
     const kernel_exe = b.addExecutable(.{
         .name = "kfs.bin",
         .root_module = b.createModule(.{
@@ -26,6 +32,7 @@ pub fn build(b: *std.Build) void {
 
     kernel_exe.is_linking_libc = false;
     kernel_exe.root_module.addImport("drivers", drivers_mod);
+    kernel_exe.root_module.addImport("arch", arch_mod);
     kernel_exe.setLinkerScript(b.path("linker.ld"));
     kernel_exe.addAssemblyFile(b.path("src/arch/i386/boot.s"));
 
