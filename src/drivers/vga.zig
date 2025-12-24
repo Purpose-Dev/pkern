@@ -1,17 +1,24 @@
 const VGA_WIDTH: usize = 80;
-const VGA_HEIGTH: usize = 25;
+const VGA_HEIGHT: usize = 25;
 const VGA_MEMORY: usize = 0xB8000;
+const NUM_CONSOLES: usize = 3; // F1, F2, F3
 
 const VgaChar = extern struct {
     char: u8,
     color: u8,
 };
 
-const vga_buffer: [*]volatile VgaChar = @ptrFromInt(VGA_MEMORY);
+const VirtualConsole = struct {
+    buffer: [VGA_WIDTH * VGA_HEIGHT]VgaChar,
+    row: usize,
+    col: usize,
+    color: u8,
+};
 
-var g_row: usize = 0;
-var g_col: usize = 0;
-var g_color: u8 = 0x0F;
+const video_memory: [*]volatile VgaChar = @ptrFromInt(VGA_MEMORY);
+
+var consoles: [NUM_CONSOLES]VirtualConsole = undefined;
+var active_console_idx: usize = 0;
 
 pub const Color = enum(u4) {
     Black = 0,
@@ -32,10 +39,6 @@ pub const Color = enum(u4) {
     White = 15,
 };
 
-pub fn init() void {
-    clearScreen();
-}
-
 fn outb(port: u16, value: u8) void {
     asm volatile ("outb %[value], %[port]"
         :
@@ -44,7 +47,7 @@ fn outb(port: u16, value: u8) void {
         : .{ .memory = true });
 }
 
-fn updateCursor(row: usize, col: usize) void {
+fn updateHwCursor(row: usize, col: usize) void {
     const index = row * VGA_WIDTH + col;
 
     outb(0x3D4, 0x0F);
@@ -53,60 +56,95 @@ fn updateCursor(row: usize, col: usize) void {
     outb(0x3D5, @intCast((index >> 8) & 0xFF));
 }
 
+pub fn init() void {
+    for (&consoles) |*c| {
+        c.row = 0;
+        c.col = 0;
+        c.color = 0x0F;
+
+        const blank = VgaChar{ .char = ' ', .color = 0x0F };
+        for (0..VGA_WIDTH * VGA_HEIGHT) |i| {
+            c.buffer[i] = blank;
+        }
+    }
+
+    switchConsole(0);
+}
+
+pub fn switchConsole(index: usize) void {
+    if (index >= NUM_CONSOLES)
+        return;
+
+    active_console_idx = index;
+    const console = &consoles[active_console_idx];
+
+    var i: usize = 0;
+    while (i < VGA_WIDTH * VGA_HEIGHT) : (i += 1) {
+        video_memory[i] = console.buffer[i];
+    }
+
+    updateHwCursor(console.row, console.col);
+}
+
 pub fn setColor(fg: Color, bg: Color) void {
-    g_color = (@as(u8, @intFromEnum(bg)) << 4) | @intFromEnum(fg);
+    consoles[active_console_idx].color = (@as(u8, @intFromEnum(bg)) << 4) | @intFromEnum(fg);
 }
 
 pub fn clearScreen() void {
-    g_row = 0;
-    g_col = 0;
-    const blank = VgaChar{ .char = ' ', .color = g_color };
+    const console = &consoles[active_console_idx];
+    console.row = 0;
+    console.col = 0;
 
-    var i: usize = 0;
-    while (i < VGA_WIDTH * VGA_HEIGTH) : (i += 1) {
-        vga_buffer[i] = blank;
+    const blank = VgaChar{ .char = ' ', .color = console.color };
+    for (0..VGA_WIDTH * VGA_HEIGHT) |i| {
+        console.buffer[i] = blank;
+        video_memory[i] = blank;
     }
-    updateCursor(0, 0);
+    updateHwCursor(0, 0);
 }
 
 pub fn putChar(c: u8) void {
+    const console = &consoles[active_console_idx];
+
     switch (c) {
         '\n' => {
-            g_col = 0;
-            g_row += 1;
+            console.col = 0;
+            console.row += 1;
         },
         else => {
-            const index = g_row * VGA_WIDTH + g_col;
-            vga_buffer[index] = VgaChar{
-                .char = c,
-                .color = g_color,
-            };
-            g_col += 1;
+            const index = console.row * VGA_WIDTH + console.col;
+            if (index < VGA_WIDTH * VGA_HEIGHT) {
+                const char_obj = VgaChar{ .char = c, .color = console.color };
+                console.buffer[index] = char_obj;
+                video_memory[index] = char_obj;
+            }
+            console.col += 1;
         },
     }
 
-    if (g_col >= VGA_WIDTH) {
-        g_col = 0;
-        g_row += 1;
+    if (console.col >= VGA_WIDTH) {
+        console.col = 0;
+        console.row += 1;
     }
 
-    if (g_row >= VGA_HEIGTH) {
-        const chars_to_move = (VGA_HEIGTH - 1) * VGA_WIDTH;
+    if (console.row >= VGA_HEIGHT) {
+        const chars_to_move = (VGA_HEIGHT - 1) * VGA_WIDTH;
         var i: usize = 0;
         while (i < chars_to_move) : (i += 1) {
-            vga_buffer[i] = vga_buffer[i + VGA_WIDTH];
+            console.buffer[i] = console.buffer[i + VGA_WIDTH];
         }
 
-        const blank = VgaChar{ .char = ' ', .color = g_color };
+        const blank = VgaChar{ .char = ' ', .color = console.color };
         i = chars_to_move;
-        while (i < VGA_HEIGTH * VGA_WIDTH) : (i += 1) {
-            vga_buffer[i] = blank;
+        while (i < VGA_HEIGHT * VGA_WIDTH) : (i += 1) {
+            console.buffer[i] = blank;
         }
 
-        g_row = VGA_HEIGTH - 1;
+        console.row = VGA_HEIGHT - 1;
+        switchConsole(active_console_idx);
     }
 
-    updateCursor(g_row, g_col);
+    updateHwCursor(console.row, console.col);
 }
 
 pub fn print(s: []const u8) void {

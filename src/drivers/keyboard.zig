@@ -217,9 +217,9 @@ pub export fn keyboard_handler() callconv(.c) void {
         vga.putChar(char);
     } else {
         switch (keycode) {
-            .F1 => vga.print("[F1]"),
-            .F2 => vga.print("[F2]"),
-            .F3 => vga.print("[F3]"),
+            .F1 => vga.switchConsole(0),
+            .F2 => vga.switchConsole(1),
+            .F3 => vga.switchConsole(2),
             .F4 => vga.print("[F4]"),
             .F5 => vga.print("[F5]"),
             .F6 => vga.print("[F6]"),

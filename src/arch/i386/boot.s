@@ -30,7 +30,7 @@ _start:
 .section .bss
 .align 16
 stack_bottom:
-	.skip 16384 # 16KB
+	.skip 65536 # 64KB
 stack_top:
 	# The ‘stack_top’ symbol is at the end of this area,
 	# that's where ESP needs to start.
