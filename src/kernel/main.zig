@@ -1,10 +1,28 @@
 const builtin = @import("builtin");
+const arch = @import("arch");
 const drivers = @import("drivers");
 const fmt = @import("fmt.zig");
 
 pub export fn kmain() callconv(.c) void {
+    arch.gdt.init();
+    arch.idt.init();
+    arch.pic.remap();
+
+    arch.pic.unmask(1);
+
     drivers.initDrivers();
 
+    fmt.printk(fmt.LogLevel.Info, "Enable interrupts...\n", .{});
+
+    asm volatile ("sti");
+
+    fmt.printk(fmt.LogLevel.Info, "Type something!\n", .{});
+
+    while (true) {
+        asm volatile ("hlt");
+    }
+
+    fmt.printk(fmt.LogLevel.Info, "GDT, IDT, and PIC loaded successfully\n", .{});
     fmt.printk(fmt.LogLevel.Info, "Welcome into P-Kern (Zig)!\n", .{});
 
     const an_int: i32 = -42;
