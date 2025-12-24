@@ -7,9 +7,9 @@ pub const LogLevel = enum {
     Error,
 };
 
-fn print_u64(n: u64, base: u8) void {
+fn print_u32(n: u32, base: u8) void {
     const digits = "0123456789abcdef";
-    var buffer: [64]u8 = undefined;
+    var buffer: [32]u8 = undefined;
     var i: usize = 0;
     var m = n;
 
@@ -30,19 +30,16 @@ fn print_u64(n: u64, base: u8) void {
     }
 }
 
-fn print_i64(n: i64, base: u8) void {
-    const I64_MIN = @as(i64, -0x8000_0000_0000_0000);
-    const I64_MAX = @as(i64, 0x7fff_ffff_ffff_ffff);
-
+fn print_i32(n: i32, base: u8) void {
     if (n < 0) {
         vga.putChar('-');
-        const m = if (n == I64_MIN)
-            @as(u64, @intCast(I64_MAX)) + 1
+        const m: u32 = if (n == -2147483648)
+            2147483648
         else
-            @as(u64, @intCast(-n));
-        print_u64(m, base);
+            @intCast(-n);
+        print_u32(m, base);
     } else {
-        print_u64(@intCast(n), base);
+        print_u32(@intCast(n), base);
     }
 }
 
@@ -120,7 +117,7 @@ pub fn printk(level: LogLevel, comptime fmt: []const u8, args: anytype) void {
                             else => @compileError("%d/%i expects an integer"),
                         }
                     }
-                    print_i64(@intCast(arg), 10);
+                    print_i32(@intCast(arg), 10);
                     arg_index += 1;
                 },
                 'u' => {
@@ -131,7 +128,7 @@ pub fn printk(level: LogLevel, comptime fmt: []const u8, args: anytype) void {
                             else => @compileError("%u expects an integer"),
                         }
                     }
-                    print_u64(@intCast(arg), 10);
+                    print_u32(@intCast(arg), 10);
                     arg_index += 1;
                 },
                 'x', 'p' => {
@@ -144,14 +141,14 @@ pub fn printk(level: LogLevel, comptime fmt: []const u8, args: anytype) void {
                     }
 
                     vga.print("0x");
-                    const val: u64 = if (@TypeOf(arg) == usize)
-                        @as(u64, @intCast(arg))
+                    const val: u32 = if (@TypeOf(arg) == usize)
+                        @intCast(arg)
                     else switch (@typeInfo(@TypeOf(arg))) {
-                        .int => @as(u64, @intCast(arg)),
-                        .pointer => @intFromPtr(arg),
-                        else => unreachable,
-                    };
-                    print_u64(val, 16);
+                            .int => @intCast(arg),
+                            .pointer => @intFromPtr(arg),
+                            else => unreachable,
+                        };
+                    print_u32(val, 16);
                     arg_index += 1;
                 },
                 'c' => {

@@ -6,7 +6,7 @@ pub fn build(b: *std.Build) void {
     const cwd = std.fs.cwd();
     _ = cwd.makeDir(out_dir) catch {};
 
-    const target = b.standardTargetOptions(.{ .default_target = .{ .cpu_arch = .x86, .os_tag = .freestanding } });
+    const target = b.standardTargetOptions(.{ .default_target = .{ .cpu_arch = .x86, .os_tag = .freestanding, .cpu_model = .{ .explicit = &std.Target.x86.cpu.i386 } } });
     const optimize = b.standardOptimizeOption(.{});
 
     const drivers_mod = b.createModule(.{
