@@ -42,6 +42,8 @@ pub fn init() void {
     // Base: 0, Limit: 4GB, Access: 0x92 (Present, Ring0, Code, Writable)
     // Granularity: 0xCF (4KB blocks, 32-bit)
     gdt_entries[2] = createGdtEntry(0, 0xFFFFFFFF, 0x92, 0xCF);
+
+    loadGdt();
 }
 
 // Function for load GDT and reload segments registers
@@ -58,6 +60,5 @@ fn loadGdt() void {
         \\ mov %ax, %ss
         :
         : [gdt_ptr] "r" (&gdt_ptr),
-        : .{ .ax = true }
-    );
+        : .{ .ax = true });
 }

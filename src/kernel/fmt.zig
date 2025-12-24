@@ -144,10 +144,10 @@ pub fn printk(level: LogLevel, comptime fmt: []const u8, args: anytype) void {
                     const val: u32 = if (@TypeOf(arg) == usize)
                         @intCast(arg)
                     else switch (@typeInfo(@TypeOf(arg))) {
-                            .int => @intCast(arg),
-                            .pointer => @intFromPtr(arg),
-                            else => unreachable,
-                        };
+                        .int => @intCast(arg),
+                        .pointer => @intFromPtr(arg),
+                        else => unreachable,
+                    };
                     print_u32(val, 16);
                     arg_index += 1;
                 },

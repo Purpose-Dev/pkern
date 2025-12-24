@@ -12,16 +12,6 @@ pub export fn kmain() callconv(.c) void {
 
     drivers.initDrivers();
 
-    fmt.printk(fmt.LogLevel.Info, "Enable interrupts...\n", .{});
-
-    asm volatile ("sti");
-
-    fmt.printk(fmt.LogLevel.Info, "Type something!\n", .{});
-
-    while (true) {
-        asm volatile ("hlt");
-    }
-
     fmt.printk(fmt.LogLevel.Info, "GDT, IDT, and PIC loaded successfully\n", .{});
     fmt.printk(fmt.LogLevel.Info, "Welcome into P-Kern (Zig)!\n", .{});
 
@@ -40,5 +30,13 @@ pub export fn kmain() callconv(.c) void {
     drivers.vga.setColor(.Red, .Black);
     drivers.vga.print("42!\n");
 
-    while (true) {}
+    fmt.printk(fmt.LogLevel.Info, "Enable interrupts...\n", .{});
+
+    asm volatile ("sti");
+
+    fmt.printk(fmt.LogLevel.Info, "Type something!\n", .{});
+
+    while (true) {
+        asm volatile ("hlt");
+    }
 }
