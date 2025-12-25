@@ -111,6 +111,15 @@ pub fn putChar(c: u8) void {
             console.col = 0;
             console.row += 1;
         },
+        '\x08' => {
+            if (console.col > 0) {
+                console.col -= 1;
+                const index = console.row * VGA_WIDTH + console.col;
+                const blank = VgaChar{ .char = ' ', .color = console.color };
+                console.buffer[index] = blank;
+                video_memory[index] = blank;
+            }
+        },
         else => {
             const index = console.row * VGA_WIDTH + console.col;
             if (index < VGA_WIDTH * VGA_HEIGHT) {

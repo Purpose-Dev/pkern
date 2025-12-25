@@ -110,6 +110,11 @@ const KeyMapEntry = struct {
     shifted: u8,
 };
 
+const BUFFER_SIZE = 128;
+var key_buffer: [BUFFER_SIZE]u8 = undefined;
+var read_index: usize = 0;
+var write_index: usize = 0;
+
 fn map(n: u8, s: u8) KeyMapEntry {
     return KeyMapEntry{ .normal = n, .shifted = s };
 }
@@ -194,6 +199,14 @@ fn inb(port: u16) u8 {
         : .{ .memory = true });
 }
 
+pub fn getKey() ?u8 {
+    if (read_index == write_index)
+        return null;
+    const char = key_buffer[read_index];
+    read_index = (read_index + 1) % BUFFER_SIZE;
+    return char;
+}
+
 pub export fn keyboard_handler() callconv(.c) void {
     const raw_scan_code = inb(0x60);
     const is_break = (raw_scan_code & 0x80) != 0;
@@ -214,7 +227,11 @@ pub export fn keyboard_handler() callconv(.c) void {
     const char = if (shift_pressed) mapping.shifted else mapping.normal;
 
     if (char != 0) {
-        vga.putChar(char);
+        const next_write = (write_index + 1) % BUFFER_SIZE;
+        if (next_write != read_index) {
+            key_buffer[write_index] = char;
+            write_index = next_write;
+        }
     } else {
         switch (keycode) {
             .F1 => vga.switchConsole(0),
